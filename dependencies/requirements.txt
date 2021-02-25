@@ -15,7 +15,6 @@ selenium
 whitenoise
 django-debug-toolbar
 django-redis
-sqlite3
 pandas
 numpy
 schedule
