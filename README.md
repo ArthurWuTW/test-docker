@@ -37,7 +37,7 @@ cd docker
 ```
 
 ## Container Settings
-> All settings in **[docker/project/run-container](https://github.com/ArthurWuTW/django-docker-script/blob/master/docker/project/run-container)**. For django_project, the commonly-used params are shown in the following code piece.
+> All settings in **[docker/project/run-container](https://github.com/ArthurWuTW/test-docker/blob/master/docker/project/run-container)**. For django_project, the commonly-used params are shown in the following code piece.
 
 ```sh
 # file: run-container
@@ -47,17 +47,12 @@ PORT_MAPPING_OPTS="\
     -p 0.0.0.0:8000:8000  \
 "
 
-# mount persistent database files to replace origin empty database files
-DATABASE_OPTS="\
-     --volume $HOME/Desktop/django_project/data_directory/postgresql:/var/lib/postgresql \
-"
 ...
 
 docker run \
     ...
 # Delete the specific line if you want to disable custom settings
     $PORT_MAPPING_OPTS \
-    $DATABASE_OPTS \
     ...
 ...
 
