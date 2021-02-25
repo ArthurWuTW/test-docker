@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -x
+xhost +local:
+
+source $(dirname $0)/common.sh
+source $(dirname $0)/utils.sh
+
+GRAPHICS_OPTS="\
+    --env DISPLAY=$DISPLAY \
+    --volume /tmp/.X11-unix:/tmp/.X11-unix \
+"
+
+
+PORT_MAPPING_OPTS="\
+    -p 7654:8000
+"
+
+AUDIO_OPTS="\
+    --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
+    --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
+    --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
+    --volume /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
+    --device /dev/snd \
+"
+parse_arguments() {
+    COMMAND=""
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            *)
+                COMMAND+="$1 "
+            shift;;
+        esac
+    done
+}
+
+release_persistent_volume() {
+    echo Releasing persistent volume ...
+    docker volume rm ${CONTAINER_PERSISTENT_VOLUME:?} || exit_on_error
+}
+
+run_container() {
+    if [ -e "/dev/nvidia-modeset" ]; then
+        NVIDIA_OPTS+="\
+            --device /dev/nvidia-modeset
+        "
+    fi
+
+    if [ ! -z "$NO_GUI" ]; then
+        unset GRAPHICS_OPTS
+    fi
+
+    if [ "$DISABLE_VAAPI" != "1" ]; then
+        NVIDIA_OPTS+="\
+            --volume ${NVIDIA_DRIVER_DIR}vdpau:/usr/lib/x86_64-linux-gnu/vdpau:ro \
+        "
+    fi
+
+    docker run \
+        --privileged \
+        --name $CONTAINER_NAME \
+        --rm \
+        --user $CONTAINER_USER \
+        --volume $REPO_DIR:$CONTAINER_REPO_DIR \
+        --volume ${CONTAINER_PERSISTENT_VOLUME:?}:$CONTAINER_PERSISTENT_DIR \
+        --volume $HOME/Desktop:/home/$CONTAINER_USER/Desktop \
+        --volume /mnt/remote:/mnt/remote \
+        --volume /mnt/dell_backup_directory:/mnt/dell_backup_directory \
+        $EXTRA_CONTAINER_OPTS \
+        $GRAPHICS_OPTS \
+        $PORT_MAPPING_OPTS \
+        $AUDIO_OPTS \
+        $IMAGE_NAME \
+        $COMMAND || exit_on_error
+}
+
+parse_arguments $@
+run_container $@

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+source utils.sh
+
+function build {
+    VERSION="2.7.4"
+    APT_VERSION="1:$VERSION-0ubuntu1.6"
+
+    WORK_DIR=$(pwd)
+    BUILD_DIR=$WORKDIR/build-git
+
+    # Update source repositories
+    sed -i "s/# deb-src/deb-src/" /etc/apt/sources.list || exit_on_error
+    apt-get update || exit_on_error
+
+    # Get the dependencies for git, then get openssl
+    apt-get install build-essential fakeroot dpkg-dev -y || exit_on_error
+    apt-get build-dep git=$APT_VERSION -y || exit_on_error
+    apt-get install libcurl4-openssl-dev -y || exit_on_error
+
+    mkdir $BUILD_DIR || exit_on_error
+    cd $BUILD_DIR || exit_on_error
+    apt-get source git=$APT_VERSION || exit_on_error
+
+    cd git-$VERSION || exit_on_error
+
+    # This is where we actually change the library from one type to the other.
+    sed -i -- 's/libcurl4-gnutls-dev/libcurl4-openssl-dev/' debian/control || \
+        exit_on_error
+    # Compile time, itself, is long. Skips the tests. Do so at your own peril.
+    sed -i -- '/TEST\s*=\s*test/d' debian/rules || exit_on_error
+
+    # Build it.
+    dpkg-buildpackage -rfakeroot -b -j$(nproc) -uc || exit_on_error
+
+    # ls $BUILD_DIR/git_$VERSION_amd64.deb | xargs apt-get install -y
+    apt-get install -y $BUILD_DIR/git_$VERSION*ubuntu*.deb || exit_on_error
+
+    echo Removing build directory ...
+    cd $WORK_DIR
+    rm -rf $BUILD_DIR
+}
+
+# Build Git, if OpenSSL support is required
+if [ "$BUILD_GIT" == "1" ]; then
+    build
+else
+    apt-get update
+    apt-get install -y git
+fi

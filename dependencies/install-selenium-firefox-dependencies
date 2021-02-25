@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+apt-get update || exit_on_error
+apt-get install -y \
+    firefox \
+    firefox-geckodriver \
+    || exit_on_error

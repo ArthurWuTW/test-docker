@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+source utils.sh
+
+sudo apt update
+sudo apt install -y redis-server || exit_on_error
